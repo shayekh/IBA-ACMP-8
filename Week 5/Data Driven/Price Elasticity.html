@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing Strategy Simulator</title>
+    <style>
+        :root {
+            --bg-color: #f4f7fa;
+            --card-bg-color: #ffffff;
+            --text-color: #333;
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --profit-color: #28a745;
+            --loss-color: #dc3545;
+            --border-color: #dee2e6;
+            --shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2em;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2em;
+        }
+        header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 1em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1em;
+        }
+        header h1 {
+            margin: 0;
+            color: var(--primary-color);
+        }
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .tooltip-icon {
+            font-style: normal;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            text-align: center;
+            line-height: 20px;
+            font-weight: bold;
+        }
+        .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        .card {
+            background-color: var(--card-bg-color);
+            border-radius: 8px;
+            padding: 1.5em;
+            box-shadow: var(--shadow);
+        }
+        .controls-card h2, .summary-card h2 {
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5em;
+        }
+        .slider-group {
+            margin-bottom: 1.5em;
+        }
+        .slider-group label {
+            display: block;
+            margin-bottom: 0.5em;
+            font-weight: bold;
+        }
+        .slider-group input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        #priceA_value, #priceB_value {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .table-container {
+            grid-column: 1 / -1;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1em;
+        }
+        th, td {
+            text-align: right;
+            padding: 0.75em;
+            border: 1px solid var(--border-color);
+        }
+        th {
+            background-color: #e9ecef;
+            font-weight: 600;
+        }
+        td:first-child, th:first-child {
+            text-align: left;
+            font-weight: bold;
+        }
+        .profit { color: var(--profit-color); }
+        .loss { color: var(--loss-color); }
+        .summary-card ul {
+            list-style: none;
+            padding: 0;
+        }
+        .summary-card li {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75em 0;
+            border-bottom: 1px solid #eee;
+            font-size: 1.1em;
+        }
+        .summary-card li:last-child {
+            border-bottom: none;
+        }
+        .summary-card li span:last-child {
+            font-weight: bold;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Pricing Strategy Simulator
+                <span class="tooltip-container">
+                    <i class="tooltip-icon">?</i>
+                    <span class="tooltip-text">Product B (Elasticity: -2.0) is more price-sensitive than Product A (Elasticity: -1.5).</span>
+                </span>
+            </h1>
+        </header>
+
+        <div class="card controls-card">
+            <h2>Adjustable Prices</h2>
+            <div class="slider-group">
+                <label for="priceA">Product A Price: <span id="priceA_value">$50.00</span></label>
+                <input type="range" id="priceA" min="5" max="100" value="50" step="0.5">
+            </div>
+            <div class="slider-group">
+                <label for="priceB">Product B Price: <span id="priceB_value">$70.00</span></label>
+                <input type="range" id="priceB" min="5" max="100" value="70" step="0.5">
+            </div>
+        </div>
+
+        <div class="card summary-card">
+            <h2>Overall Financial Summary</h2>
+            <ul>
+                <li><span>Total Revenue</span> <span id="totalRevenue">$0</span></li>
+                <li><span>Total COGS</span> <span id="totalCOGS">$0</span></li>
+                <li><span>Total Gross Profit</span> <span id="totalGrossProfit" class="profit">$0</span></li>
+            </ul>
+        </div>
+
+        <div class="card table-container">
+            <h2>Product Performance Details</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Price</th>
+                        <th>Quantity Sold</th>
+                        <th>Revenue</th>
+                        <th>COGS</th>
+                        <th>Gross Profit</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTable">
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // --- 1. DATA INITIALIZATION ---
+    const products = [
+        { name: 'Product A', basePrice: 50,  baseQuantity: 1000, elasticity: -1.5, unitCost: 20, isAdjustable: true },
+        { name: 'Product B', basePrice: 70,  baseQuantity: 800,  elasticity: -2.0, unitCost: 35, isAdjustable: true },
+        { name: 'Product C', basePrice: 25,  baseQuantity: 2000, elasticity: 0,    unitCost: 15, isAdjustable: false },
+        { name: 'Product D', basePrice: 150, baseQuantity: 300,  elasticity: 0,    unitCost: 90, isAdjustable: false },
+        { name: 'Product E', basePrice: 15,  baseQuantity: 5000, elasticity: 0,    unitCost: 8,  isAdjustable: false },
+    ];
+
+    // --- 2. DOM ELEMENT SELECTION ---
+    const priceASlider = document.getElementById('priceA');
+    const priceBSlider = document.getElementById('priceB');
+    const priceAValue = document.getElementById('priceA_value');
+    const priceBValue = document.getElementById('priceB_value');
+    const resultsTable = document.getElementById('resultsTable');
+    const totalRevenueElem = document.getElementById('totalRevenue');
+    const totalCOGSElem = document.getElementById('totalCOGS');
+    const totalGrossProfitElem = document.getElementById('totalGrossProfit');
+
+    // --- 3. HELPER FUNCTIONS ---
+    const formatCurrency = (value) => `$${value.toFixed(2)}`;
+
+    // --- 4. CORE SIMULATION LOGIC ---
+    function updateSimulation() {
+        const priceA = parseFloat(priceASlider.value);
+        const priceB = parseFloat(priceBSlider.value);
+
+        let totalRevenue = 0;
+        let totalCOGS = 0;
+        let totalGrossProfit = 0;
+
+        products.forEach(p => {
+            if (p.name === 'Product A') p.price = priceA;
+            if (p.name === 'Product B') p.price = priceB;
+            if (!p.price) p.price = p.basePrice;
+
+            // Calculate new quantity based on elasticity
+            if (p.isAdjustable) {
+                p.quantity = p.baseQuantity * Math.pow((p.price / p.basePrice), p.elasticity);
+            } else {
+                p.quantity = p.baseQuantity;
+            }
+            p.quantity = Math.round(p.quantity); // Can't sell fractions of products
+
+            // Calculate financial metrics
+            p.revenue = p.price * p.quantity;
+            p.cogs = p.unitCost * p.quantity;
+            p.grossProfit = p.revenue - p.cogs;
+
+            // Aggregate totals
+            totalRevenue += p.revenue;
+            totalCOGS += p.cogs;
+            totalGrossProfit += p.grossProfit;
+        });
+
+        renderUI(totalRevenue, totalCOGS, totalGrossProfit);
+    }
+
+    // --- 5. UI RENDERING ---
+    function renderUI(totalRevenue, totalCOGS, totalGrossProfit) {
+        // Update slider value displays
+        priceAValue.textContent = formatCurrency(parseFloat(priceASlider.value));
+        priceBValue.textContent = formatCurrency(parseFloat(priceBSlider.value));
+
+        // Update table
+        resultsTable.innerHTML = '';
+        products.forEach(p => {
+            const profitClass = p.grossProfit >= 0 ? 'profit' : 'loss';
+            const row = `
+                <tr>
+                    <td>${p.name}</td>
+                    <td>${formatCurrency(p.price)}</td>
+                    <td>${p.quantity.toLocaleString()}</td>
+                    <td>${formatCurrency(p.revenue)}</td>
+                    <td>${formatCurrency(p.cogs)}</td>
+                    <td class="${profitClass}">${formatCurrency(p.grossProfit)}</td>
+                </tr>
+            `;
+            resultsTable.innerHTML += row;
+        });
+
+        // Update summary card
+        totalRevenueElem.textContent = formatCurrency(totalRevenue);
+        totalCOGSElem.textContent = formatCurrency(totalCOGS);
+        totalGrossProfitElem.textContent = formatCurrency(totalGrossProfit);
+        totalGrossProfitElem.className = totalGrossProfit >= 0 ? 'profit' : 'loss';
+    }
+
+    // --- 6. EVENT LISTENERS & INITIALIZATION ---
+    priceASlider.addEventListener('input', updateSimulation);
+    priceBSlider.addEventListener('input', updateSimulation);
+
+    // Initial load
+    updateSimulation(); 
+});
+</script>
+
+</body>
+</html>

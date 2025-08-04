@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A/B Test Visualization</title>
+    <!-- Include Chart.js from a CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        .variants-container {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .variant {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            width: 45%;
+            transition: all 0.3s ease;
+        }
+        .variant h2 {
+            margin-top: 0;
+            color: #34495e;
+        }
+        .ad-design {
+            width: 100%;
+            height: 150px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        #ad-a {
+            background-color: #3497dc; /* Blue for A */
+        }
+        #ad-b {
+            background-color: #2ecc71; /* Green for B */
+        }
+        .run-button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 30px;
+        }
+        .run-button:hover {
+            background-color: #c0392b;
+        }
+        .results-section {
+            display: none; /* Hidden by default */
+            border-top: 1px solid #e0e0e0;
+            padding-top: 20px;
+        }
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            text-align: left;
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .stat-box h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        .stat-box p {
+            margin: 5px 0;
+            color: #34495e;
+            font-size: 16px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .interpretation {
+            margin-top: 30px;
+            font-size: 20px;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .interpretation.winner-b {
+            background-color: #e9f9f1;
+            color: #2ecc71;
+        }
+        .interpretation.winner-a {
+            background-color: #ebf5fb;
+            color: #3498db;
+        }
+        .interpretation.tie {
+            background-color: #f1f3f4;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>A/B Test Simulation</h1>
+        <p>See how small changes can impact user engagement. We'll show two ad designs to 1,000 visitors.</p>
+
+        <div class="variants-container">
+            <div class="variant">
+                <h2>Variant A</h2>
+                <div class="ad-design" id="ad-a">Ad Design A</div>
+            </div>
+            <div class="variant">
+                <h2>Variant B</h2>
+                <div class="ad-design" id="ad-b">Ad Design B</div>
+            </div>
+        </div>
+
+        <button id="runTestBtn" class="run-button">Run Test</button>
+
+        <div id="resultsSection" class="results-section">
+            <h2>Results</h2>
+            <div class="stats-container">
+                <div class="stat-box">
+                    <h3>Variant A</h3>
+                    <p><strong>Visitors:</strong> 500</p>
+                    <p><strong>Conversion Rate:</strong> <span id="rate-a"></span></p>
+                    <p><strong>Conversions:</strong> <span id="conversions-a"></span></p>
+                </div>
+                <div class="stat-box">
+                    <h3>Variant B</h3>
+                    <p><strong>Visitors:</strong> 500</p>
+                    <p><strong>Conversion Rate:</strong> <span id="rate-b"></span></p>
+                    <p><strong>Conversions:</strong> <span id="conversions-b"></span></p>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="resultsChart"></canvas>
+            </div>
+            
+            <div id="interpretation" class="interpretation"></div>
+        </div>
+    </div>
+
+    <script>
+        const runTestBtn = document.getElementById('runTestBtn');
+        const resultsSection = document.getElementById('resultsSection');
+        const rateAEl = document.getElementById('rate-a');
+        const conversionsAEl = document.getElementById('conversions-a');
+        const rateBEl = document.getElementById('rate-b');
+        const conversionsBEl = document.getElementById('conversions-b');
+        const interpretationEl = document.getElementById('interpretation');
+        const chartCanvas = document.getElementById('resultsChart');
+        
+        let myChart; // To hold the chart instance
+
+        runTestBtn.addEventListener('click', () => {
+            // --- 1. Define Test Parameters ---
+            const totalVisitors = 1000;
+            const visitorsPerVariant = totalVisitors / 2;
+
+            // --- 2. Generate Random Base Conversion Rates ---
+            // Let's create realistic rates, e.g., between 3% and 10%
+            const rateA = 0.03 + Math.random() * 0.07; // Random float between 0.03 and 0.10
+            const rateB = 0.03 + Math.random() * 0.07; // Random float between 0.03 and 0.10
+
+            // --- 3. Simulate Conversions ---
+            const conversionsA = Math.round(visitorsPerVariant * rateA);
+            const conversionsB = Math.round(visitorsPerVariant * rateB);
+
+            // --- 4. Update the Stats Display ---
+            rateAEl.textContent = `${(rateA * 100).toFixed(2)}%`;
+            conversionsAEl.textContent = conversionsA;
+            rateBEl.textContent = `${(rateB * 100).toFixed(2)}%`;
+            conversionsBEl.textContent = conversionsB;
+            
+            // --- 5. Generate the Interpretation Text ---
+            let interpretationText = '';
+            interpretationEl.className = 'interpretation'; // Reset classes
+
+            if (rateB > rateA) {
+                const improvement = ((rateB - rateA) / rateA) * 100;
+                interpretationText = `Variant B outperformed Variant A by ${improvement.toFixed(1)}%.`;
+                interpretationEl.classList.add('winner-b');
+            } else if (rateA > rateB) {
+                const improvement = ((rateA - rateB) / rateB) * 100;
+                interpretationText = `Variant A outperformed Variant B by ${improvement.toFixed(1)}%.`;
+                interpretationEl.classList.add('winner-a');
+            } else {
+                interpretationText = 'The variants performed equally. The test is inconclusive.';
+                interpretationEl.classList.add('tie');
+            }
+            interpretationEl.textContent = interpretationText;
+
+            // --- 6. Create or Update the Bar Chart ---
+            if (myChart) {
+                myChart.destroy(); // Destroy the old chart instance before creating a new one
+            }
+            const ctx = chartCanvas.getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Variant A', 'Variant B'],
+                    datasets: [{
+                        label: 'Conversion Rate',
+                        data: [(rateA * 100), (rateB * 100)],
+                        backgroundColor: [
+                            'rgba(52, 152, 219, 0.8)', // Blue for A
+                            'rgba(46, 204, 113, 0.8)'  // Green for B
+                        ],
+                        borderColor: [
+                            'rgb(52, 152, 219)',
+                            'rgb(46, 204, 113)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Conversion Rate (%)'
+                            },
+                            ticks: {
+                                // Add a '%' sign to the y-axis ticks
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // Hide the legend as the labels are clear
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(2) + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // --- 7. Show the Results ---
+            resultsSection.style.display = 'block';
+        });
+    </script>
+</body>
+</html>
